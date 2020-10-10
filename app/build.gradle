@@ -76,6 +76,35 @@ android {
     }
 }
 
+tasks.whenTaskAdded { task ->
+    def releaseFlavorName = 'release'
+    def defaultBundleName = "app-${releaseFlavorName}.aab"
+    if (task.name.startsWith('bundle')) {
+        def flavor = task.name.substring('bundle'.length()).uncapitalize()
+        if (flavor == releaseFlavorName) {
+            def taskName = "rename${flavor.capitalize()}Bundle"
+            tasks.create(taskName, Copy) {
+                def path = "$flavor/"
+                from(path)
+                include defaultBundleName
+                destinationDir file(path)
+
+                def versionName = android.defaultConfig.versionName
+                def outputBundleName = "hash-checker_${versionName}.aab"
+                rename defaultBundleName, outputBundleName
+            }
+            task.finalizedBy(taskName)
+        }
+    }
+    if (task.name.startsWith('rename')) {
+        def taskName = "deleteDefaulReleaseBundle"
+        tasks.create(taskName, Delete) {
+            delete "$releaseFlavorName/$defaultBundleName"
+        }
+        task.finalizedBy(taskName)
+    }
+}
+
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
